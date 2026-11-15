@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.02] - 2026-11-15
+
+### Fixed
+- Help: a new "The header" section lists every header button, including Refresh and About, which Help didn't mention before.
+- Help: the right-click menu no longer lists Open web page twice. Its second web item is now named as the menu shows it (Open via phpMyAdmin...).
+- Help: the machine fields use the Settings labels (Address, SSH user, port, Folder, Compose file, Project, Web address, Path map) instead of the settings.json names. Help also says the machine button only shows once there's a machine besides This PC.
+- Help: says where Cancel the remaining is (in the Actions menu while a Start all or Stop all runs), and that Restart unhealthy covers every tab, whatever the search.
+- Help: the Homepage icon folder is the one set in Settings, or homepage\icons next to This PC's compose file. The refresh time (15 seconds by default) and Enter on a Running row are now in Help too.
+
 ## [1.01] - 2026-11-15
 
 ### Added

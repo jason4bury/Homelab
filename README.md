@@ -6,7 +6,7 @@
 
 Every container in your compose file as a tile, grouped by label, one click from its web page.
 
-![Version](https://img.shields.io/badge/version-v1.01-blue) ![Platform](https://img.shields.io/badge/platform-Windows-0078D6) ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-5391FE) ![Licence](https://img.shields.io/badge/licence-MIT-green) ![Last commit](https://img.shields.io/github/last-commit/jason4bury/Homelab)
+![Version](https://img.shields.io/badge/version-v1.02-blue) ![Platform](https://img.shields.io/badge/platform-Windows-0078D6) ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-5391FE) ![Licence](https://img.shields.io/badge/licence-MIT-green) ![Last commit](https://img.shields.io/github/last-commit/jason4bury/Homelab)
 
 ## ✨ Features
 
@@ -52,7 +52,7 @@ Homelab is a PowerShell/WPF tool that shows every container in your Docker Compo
 
 ## 📦 Installation
 
-**Exe:** download `Homelab v1.01.exe` from the [latest release](../../releases/latest) and run it. Nothing else to install. Put it in `Home\Homelab\Builds\` and the Home Launcher lists it under Windows.
+**Exe:** download `Homelab v1.02.exe` from the [latest release](../../releases/latest) and run it. Nothing else to install. Put it in `Home\Homelab\Builds\` and the Home Launcher lists it under Windows.
 
 **Script:** clone the repo, or download it as a zip. If you download a zip, right-click it, choose **Properties** and tick **Unblock** *before* unzipping, so Windows doesn't block the scripts. Then double-click **Start Homelab.cmd**.
 
