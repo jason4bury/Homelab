@@ -25,7 +25,7 @@ $ErrorActionPreference = 'Stop'
 # The version lives here and in CHANGELOG.md; Build-Exe.cmd stops if they disagree.
 # Two-digit minor: 1.00, 1.01 ... 1.10. The exe is named "Homelab v<version>.exe".
 $script:AppName     = 'Homelab'
-$script:AppVersion  = '1.00'
+$script:AppVersion  = '1.01'
 $script:Description = 'PowerShell/WPF tool for opening every Docker container in a compose file from one window of tiles'
 $script:Copyright   = 'Copyright (c) 2026 Jason Rhodes'
 $script:RepoUrl     = 'https://github.com/jason4bury/Homelab'
@@ -1534,6 +1534,13 @@ $mainXaml = @'
             <Setter Property="BorderBrush" Value="{DynamicResource Accent}"/>
             <Setter Property="Foreground" Value="{DynamicResource AccentText}"/>
         </Style>
+        <!-- The header's updates pill while it isn't filtering (filtering, it uses AccentButton). -->
+        <Style x:Key="UpdatesPill" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource Accent}"/>
+            <Setter Property="Foreground" Value="{DynamicResource Link}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
         <Style x:Key="StartButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="{DynamicResource St_ok}"/>
@@ -1701,7 +1708,8 @@ $mainXaml = @'
     </Window.Resources>
     <DockPanel>
         <Border DockPanel.Dock="Top" Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Line}" BorderThickness="0,0,0,1" Padding="16,10">
-            <!-- The counts fill what's left and trim; the search box shrinks on narrow windows (Update-HeaderFit). -->
+            <!-- The counts fill what's left; on narrow windows the search box shrinks first and the counts trim last (Update-HeaderFit).
+                 The updates pill sits between them and never trims. -->
             <DockPanel x:Name="HeaderBar" LastChildFill="True">
                 <Image x:Name="Logo" DockPanel.Dock="Left" Width="30" Height="30" Margin="0,0,10,0" VerticalAlignment="Center" RenderOptions.BitmapScalingMode="HighQuality"/>
                 <TextBlock DockPanel.Dock="Left" Text="Homelab" FontSize="20" FontWeight="SemiBold" VerticalAlignment="Center"/>
@@ -1717,6 +1725,7 @@ $mainXaml = @'
                     <TextBox x:Name="TxtSearch" Padding="7,4" VerticalContentAlignment="Center"/>
                     <TextBlock x:Name="SearchHint" Text="Search containers  (Ctrl+F)" Foreground="{DynamicResource Hint}" Margin="9,0,8,0" VerticalAlignment="Center" IsHitTestVisible="False" TextTrimming="CharacterEllipsis"/>
                 </Grid>
+                <Button x:Name="BtnUpdates" DockPanel.Dock="Right" Padding="10,3" Margin="12,0,0,0" VerticalAlignment="Center" Visibility="Collapsed"/>
                 <TextBlock x:Name="TxtCounts" Margin="16,0,0,0" Foreground="{DynamicResource Muted}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
             </DockPanel>
         </Border>
@@ -1807,10 +1816,41 @@ function Update-Counts {
     if ($stopped) { $parts += "$stopped stopped" }
     if ($problems) { $parts += "$problems with a problem" }
     if ($missing) { $parts += "$missing not created" }
-    if ($script:UpdateCount) { $parts += "$($script:UpdateCount) update$(if ($script:UpdateCount -ne 1) { 's' })" }
     $script:Ui.TxtCounts.Text = $parts -join '  ·  '
     $script:Ui.TxtCounts.ToolTip = $parts -join "`n"   # the whole list, for when a narrow window trims it
+    Update-UpdatesPill
     Update-UpdatedText
+    Request-HeaderFit   # the counts' length changed, so the search box may have room again (or need to give some)
+}
+
+$script:UpdatesOnly = $false   # the updates pill is pressed: only containers with a newer image are shown
+function Update-UpdatesPill {
+    <# The "↑ 2 updates" pill next to the counts: shown only when an update check found some. Its
+       tooltip names them; clicking it shows only those (and again shows everything). #>
+    $b = $script:Ui.BtnUpdates
+    $names = @(Get-VisibleItems | Where-Object { $_.UpdateAvailable } | Sort-Object Title | ForEach-Object { $_.Title })
+    $n = $names.Count
+    if (-not $n -and $script:UpdatesOnly) { $script:UpdatesOnly = $false; Update-SearchFilter }   # nothing left to filter to
+    $b.Visibility = if ($n) { 'Visible' } else { 'Collapsed' }
+    if (-not $n) { return }
+    $b.Content = "$([char]0x2191) $n update$(if ($n -ne 1) { 's' })"
+    $b.Style = $script:Window.FindResource($(if ($script:UpdatesOnly) { 'AccentButton' } else { 'UpdatesPill' }))
+    $b.FontWeight = 'SemiBold'
+    $list = @($names | Select-Object -First 20 | ForEach-Object { "  $([char]0x2022) $_" })
+    if ($n -gt 20) { $list += "  ...and $($n - 20) more" }
+    $what = if ($n -eq 1) { 'This container has a newer image' } else { "These $n containers have a newer image" }
+    $click = if ($script:UpdatesOnly) { 'Click to show every container again.' } else { 'Click to show only these.' }
+    $b.ToolTip = "$($what):`n$($list -join "`n")`n`n$click"
+}
+
+function Switch-UpdatesOnly {
+    <# The updates pill: show only the containers with an update, or everything again. The search still applies on top. #>
+    $script:UpdatesOnly = -not $script:UpdatesOnly
+    Update-SearchFilter
+    Update-UpdatesPill
+    Request-HeaderFit
+    if ($script:UpdatesOnly) { Set-Status 'Showing only containers with a newer image. Click the updates button again to show them all.' }
+    else { Set-Status '' }
 }
 
 $script:LastPollAt = $null
@@ -1821,17 +1861,32 @@ function Update-UpdatedText {
 }
 
 function Update-HeaderFit {
-    <# Below about 1300 px the header would overflow: the search box shrinks (260 down to 150 px)
-       so the counts keep about 220 px, and the counts trim with an ellipsis after that. #>
+    <# When the header runs short, the search box gives way first (260 down to 150 px) so the counts
+       keep their whole text; only once it's at 150 px do the counts trim (full text in their tooltip).
+       The buttons and the updates pill keep their size: if even that doesn't fit (a very narrow
+       window), the search box goes below 150 px (down to 60) rather than squeeze the pill. #>
     $bar = $script:Ui.HeaderBar
     if (-not $bar -or $bar.ActualWidth -le 0) { return }
     $fixed = 0.0
+    $inf = New-Object Windows.Size([double]::PositiveInfinity, [double]::PositiveInfinity)
     foreach ($c in $bar.Children) {
         if ($c -eq $script:Ui.SearchBox -or $c -eq $script:Ui.TxtCounts -or $c.Visibility -ne 'Visible') { continue }
-        $fixed += $c.ActualWidth + $c.Margin.Left + $c.Margin.Right
+        # Natural width (DesiredSize includes the margin); ActualWidth is already squeezed when the bar is short.
+        $c.Measure($inf)
+        $fixed += $c.DesiredSize.Width
     }
-    $room = $bar.ActualWidth - $fixed - $script:Ui.SearchBox.Margin.Left - 220
-    $w = [Math]::Max(150, [Math]::Min(260, $room))
+    # The counts' untrimmed width (their ActualWidth is already trimmed on a narrow window).
+    $tc = $script:Ui.TxtCounts
+    $countsW = $tc.Margin.Left + $tc.Margin.Right + 2
+    if ($tc.Text) {
+        $ft = New-Object Windows.Media.FormattedText($tc.Text, [Globalization.CultureInfo]::CurrentUICulture, 'LeftToRight',
+            (New-Object Windows.Media.Typeface($tc.FontFamily, $tc.FontStyle, $tc.FontWeight, $tc.FontStretch)), $tc.FontSize, $tc.Foreground,
+            [Windows.Media.VisualTreeHelper]::GetDpi($tc).PixelsPerDip)
+        $countsW += [Math]::Ceiling($ft.WidthIncludingTrailingWhitespace)
+    }
+    $spare = $bar.ActualWidth - $fixed - $script:Ui.SearchBox.Margin.Left   # for the search box and the counts
+    $w = [Math]::Max(150, [Math]::Min(260, $spare - $countsW))
+    if ($w -gt $spare) { $w = [Math]::Max(60, [Math]::Floor($spare)) }
     if ([Math]::Abs($script:Ui.SearchBox.Width - $w) -ge 1) { $script:Ui.SearchBox.Width = $w }
 }
 
@@ -2244,13 +2299,13 @@ $script:HelpText = @(
             @('F5', 'Read the compose file and the containers again (same as Refresh).'),
             @('F1', 'Open this Help window (same as the Help button).'))),
     @('h', 'Actions menu'),
-    @('b', 'Start all / Stop all on the open tab: every container shown there (the search counts) that isn''t already in that state. A locked Private tab has none. Homelab lists them and asks first, then runs them one at a time; Cancel the remaining stops the queue.'),
+    @('b', 'Start all / Stop all on the open tab: every container shown there (the search and the updates button count) that isn''t already in that state. A locked Private tab has none. Homelab lists them and asks first, then runs them one at a time; Cancel the remaining stops the queue.'),
     @('b', 'Restart unhealthy: every visible container whose health check says unhealthy, after asking.'),
     @('b', 'Check for image updates now: see below.'),
     @('h', 'Notifications'),
     @('p', 'When a container becomes unhealthy or stops with an error between two status checks, Windows shows a notification (click it to come back to Homelab). Not on the first check after starting or switching machine, not for containers you started, stopped or restarted in the last few minutes, and not for hidden Private ones. Turn it off in Settings > General.'),
     @('h', 'Image updates'),
-    @('p', 'Every 6 hours (and from Actions > Check for image updates now) Homelab compares the image each container uses (its tag, such as latest) with the registry: Docker Hub, ghcr.io, lscr.io and others that allow anonymous reads. A container with a newer image gets a small blue arrow on its icon, and the header counts them. It only reads; it never pulls or recreates anything. On a NAS the image list comes over SSH. Turn it off in Settings > General.'),
+    @('p', 'Every 6 hours (and from Actions > Check for image updates now) Homelab compares the image each container uses (its tag, such as latest) with the registry: Docker Hub, ghcr.io, lscr.io and others that allow anonymous reads. A container with a newer image gets a small blue arrow on its icon, and a blue button such as "↑ 2 updates" appears in the header (hover over it for their names). Click it to show only those containers, and again to show them all; the search still works on top. It only reads; it never pulls or recreates anything. On a NAS the image list comes over SSH. Turn it off in Settings > General.'),
     @('h', 'Machines'),
     @('p', 'The button next to the title picks the machine: This PC runs docker.exe here; any other machine is reached with Windows'' own ssh.exe (key login, no password prompts) and docker runs there. Web addresses use that machine''s address, and command windows and logs open over ssh -t. Icons come from the same Icons folder for every machine. The list starts as a copy of Docker Container Manager''s machines. Change it in Settings > Machines (Test connection checks SSH and Docker); each machine has:'),
     @('t', @(@('Name', 'Shown on the machine button, for example NAS.'),
@@ -2432,7 +2487,9 @@ function Add-Tab([string]$Name, [string]$Count, $Content, [switch]$Locked) {
 }
 
 function Test-SearchMatch($Item) {
-    <# Every word in the search box is in the container's name, service, group, image or description. #>
+    <# Every word in the search box is in the container's name, service, group, image or description
+       (and, while the updates pill is pressed, it has a newer image). #>
+    if ($script:UpdatesOnly -and -not $Item.UpdateAvailable) { return $false }
     $words = @($script:Ui.TxtSearch.Text.Trim().ToLowerInvariant() -split '\s+' | Where-Object { $_ })
     if (-not $words.Count) { return $true }
     $hay = ("$($Item.Title) $($Item.Service) $($Item.Container) $($Item.Group) $($Item.Image) $($Item.Description)").ToLowerInvariant()
@@ -2606,7 +2663,7 @@ function Reset-ForNewSource {
     $script:LastPollAt = $null
     $script:StatusSeeded = $false
     $script:ActionQueue.Clear(); $script:ActionTotal = 0
-    $script:UpdateChecking = $false; $script:UpdateRemote = @{}; $script:UpdateLocal = @{}; $script:UpdateCount = 0
+    $script:UpdateChecking = $false; $script:UpdateRemote = @{}; $script:UpdateLocal = @{}; $script:UpdateCount = 0; $script:UpdatesOnly = $false
     $script:NextUpdateCheck = [DateTime]::MaxValue
     Set-PortainerButton ''
     $script:NextPoll = [DateTime]::MaxValue
@@ -3421,7 +3478,7 @@ function Invoke-GroupAction([string]$Verb) {
     $items = switch ($Verb) { 'Restart' { @(Get-UnhealthyItems) } default { @(Get-TabTargets $Verb) } }
     if (-not $items.Count) { Set-Status 'Nothing to do.'; return }
     $n = $items.Count; $s = if ($n -eq 1) { '' } else { 's' }
-    $onTab = "on $tabName" + $(if ($script:Ui.TxtSearch.Text.Trim()) { ' matching the search' } else { '' })
+    $onTab = "on $tabName" + $(if ($script:UpdatesOnly) { ' with an update' } else { '' }) + $(if ($script:Ui.TxtSearch.Text.Trim()) { ' matching the search' } else { '' })
     $q = if ($Verb -eq 'Restart') { "Restart $n unhealthy container$($s)?" } else { "$Verb $n container$s $($onTab)?" }
     if (-not (Confirm-GroupAction $q $items)) { return }
     Write-AppLog "$Verb all: $n on $(Get-MachineName) ($tabName)"
@@ -3636,6 +3693,7 @@ function Set-UpdateBadges {
         }
     }
     $script:UpdateCount = @(Get-VisibleItems | Where-Object { $_.UpdateAvailable }).Count
+    if ($script:UpdatesOnly) { Update-SearchFilter }   # which tiles the updates pill shows may have changed
     Update-Counts
     Update-RunningList
 }
@@ -3763,7 +3821,8 @@ try {
     $script:Ui = @{}
     foreach ($n in 'Logo', 'BtnMachine', 'TxtCounts', 'BtnAbout', 'BtnHelp', 'BtnSettings','BtnTheme', 'BtnPortainer', 'BtnRefresh', 'TxtSearch', 'SearchHint', 'TxtUpdated', 'LnkCompose',
         'TxtCompose', 'TxtStatus', 'Banner', 'TxtBanner', 'BtnBannerClose', 'Tabs', 'BusyBox', 'BusyTitle', 'BusyDetail', 'BusyBar',
-        'HeaderBar', 'SearchBox', 'BtnActions') { $script:Ui[$n] = $window.FindName($n) }
+        'HeaderBar', 'SearchBox', 'BtnActions', 'BtnUpdates') { $script:Ui[$n] = $window.FindName($n) }
+    $script:Ui.BtnUpdates.Add_Click({ Switch-UpdatesOnly })
     $script:Ui.BtnActions.Content = "Actions  " + [string][char]0x25BE
     $script:Ui.BtnActions.Add_Click({ Show-ActionsMenu })
     $window.Add_SizeChanged({ Request-HeaderFit })

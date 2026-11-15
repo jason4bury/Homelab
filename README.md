@@ -6,7 +6,7 @@
 
 Every container in your compose file as a tile, grouped by label, one click from its web page.
 
-![Version](https://img.shields.io/badge/version-v1.00-blue) ![Platform](https://img.shields.io/badge/platform-Windows-0078D6) ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-5391FE) ![Licence](https://img.shields.io/badge/licence-MIT-green) ![Last commit](https://img.shields.io/github/last-commit/jason4bury/Homelab)
+![Version](https://img.shields.io/badge/version-v1.01-blue) ![Platform](https://img.shields.io/badge/platform-Windows-0078D6) ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-5391FE) ![Licence](https://img.shields.io/badge/licence-MIT-green) ![Last commit](https://img.shields.io/github/last-commit/jason4bury/Homelab)
 
 ## ✨ Features
 
@@ -27,7 +27,7 @@ Homelab is a PowerShell/WPF tool that shows every container in your Docker Compo
 - **Your own icons first**: from Homelab's **Icons** folder (beside `Builds\` and `Source\`), matched to each service by name, the same for every machine. Anything missing there is looked for in Homepage's icon folder (`homepage\icons` next to the compose file, can be turned off), then comes from [Dashboard Icons](https://github.com/homarr-labs/dashboard-icons), cached on your PC (it also reuses any icons Docker Container Manager has already downloaded). Containers with no icon anywhere get coloured initials. See [Icons](#icons).
 - **Actions menu**: **Start all** or **Stop all** on the open tab, and **Restart unhealthy**, each after a confirmation that lists the containers. They run one at a time; a locked Private tab is never touched.
 - **Notifications**: a Windows notification when a container becomes unhealthy or stops with an error on its own (not on the first check, and not for ones you stopped yourself). Can be turned off.
-- **Update badges**: every 6 hours (or from **Actions > Check for image updates now**) Homelab asks each image's registry (Docker Hub, ghcr.io, lscr.io and others) whether its tag has moved on, and marks those tiles with a small blue arrow. It never pulls or recreates anything. Works for the NAS too.
+- **Update badges**: every 6 hours (or from **Actions > Check for image updates now**) Homelab asks each image's registry (Docker Hub, ghcr.io, lscr.io and others) whether its tag has moved on, and marks those tiles with a small blue arrow. A **↑ 2 updates** button then appears in the header (hover over it for their names); click it to show only those containers, and again to show everything. It never pulls or recreates anything. Works for the NAS too.
 - **Keyboard**: Tab moves between buttons, tiles and Running rows (with an accent outline), Enter opens the focused tile, and the menu key shows its right-click menu.
 - **Portainer button** in the header when Portainer is running on the chosen machine (this PC or the NAS; it finds the port itself), or always if you set `PortainerUrl`.
 - **Light and dark themes**: the header button switches between Auto (follows Windows, and changes when Windows does), Light and Dark. The title bar, menus and Settings window match too.
@@ -52,7 +52,7 @@ Homelab is a PowerShell/WPF tool that shows every container in your Docker Compo
 
 ## 📦 Installation
 
-**Exe:** download `Homelab v1.00.exe` from the [latest release](../../releases/latest) and run it. Nothing else to install. Put it in `Home\Homelab\Builds\` and the Home Launcher lists it under Windows.
+**Exe:** download `Homelab v1.01.exe` from the [latest release](../../releases/latest) and run it. Nothing else to install. Put it in `Home\Homelab\Builds\` and the Home Launcher lists it under Windows.
 
 **Script:** clone the repo, or download it as a zip. If you download a zip, right-click it, choose **Properties** and tick **Unblock** *before* unzipping, so Windows doesn't block the scripts. Then double-click **Start Homelab.cmd**.
 

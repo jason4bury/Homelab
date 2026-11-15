@@ -6,6 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.01] - 2026-11-15
+
+### Added
+- An **↑ 2 updates** button in the header when the update check finds newer images. Its tooltip names the containers, and clicking it shows only those (on every tab, together with the search); click again to show them all.
+
+### Changed
+- The update count is no longer part of the header counts text, so a narrow window can't cut it off.
+- On a narrow window the search box now shrinks to its smallest (150 px) before the counts text trims; the counts trim last, with the whole text in their tooltip.
+
 ## [1.00] - 2026-11-14
 First release.
 
