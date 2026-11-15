@@ -1,0 +1,17 @@
+{
+  "AppName": "Homelab",
+  "EntryScript": "src\\Homelab.ps1",
+  "Icon": "assets\\Homelab.ico",
+  "Side": "Home",
+  "Description": "PowerShell/WPF tool for opening every Docker container in a compose file from one window of tiles",
+  "EmbedAssets": ["assets\\Homelab.ico", "assets\\Homelab.png"],
+  "IncludeFiles": [],
+  "Ps2exe": {
+    "STA": true,
+    "NoConsole": true,
+    "NoOutput": true,
+    "NoError": true,
+    "NoConfigFile": true,
+    "RequireAdmin": false
+  }
+}
