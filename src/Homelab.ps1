@@ -8,7 +8,10 @@
     Project layout (house style):
         <project>\Source\               the git repo (this script is in Source\src\)
         <project>\Source\assets\        icon (.ico) and logo (.png)
-        <project>\Builds\               Homelab v<version>.exe, made by Build-Exe.cmd
+        <project>\Builds\               Homelab v<version>\ (this script, assets\ and Homelab.cmd) and
+                                        Homelab-v<version>.zip, made by Build.cmd
+    No exe: the script runs in Windows PowerShell, started hidden by the Homelab shortcut
+    (made by Homelab.cmd / New-HomelabShortcut.ps1).
     Settings and data: %APPDATA%\Homelab
 
 .NOTES
@@ -22,31 +25,27 @@
 
 $ErrorActionPreference = 'Stop'
 
-# The version lives here and in CHANGELOG.md; Build-Exe.cmd stops if they disagree.
-# Two-digit minor: 1.00, 1.01 ... 1.10. The exe is named "Homelab v<version>.exe".
+# The version lives here and in CHANGELOG.md; Build.cmd stops if they disagree.
+# Two-digit minor: 1.00, 1.01 ... 1.10. The release folder is "Homelab v<version>".
 $script:AppName     = 'Homelab'
-$script:AppVersion  = '1.02'
+$script:AppVersion  = '1.03'
+# The taskbar identity, shared with the Homelab shortcut, so the taskbar shows Homelab's icon
+# (not PowerShell's) and a pinned Homelab starts Homelab.
+$script:AppId       = 'jason4bury.Homelab'
 $script:Description = 'PowerShell/WPF tool for opening every Docker container in a compose file from one window of tiles'
 $script:Copyright   = 'Copyright (c) 2026 Jason Rhodes'
 $script:RepoUrl     = 'https://github.com/jason4bury/Homelab'
 $script:IsPrivate   = $false   # private tools keep their data in <project>\Data, inside the vault
 
-#region BUNDLE-ASSETS
-# Build-Exe.cmd replaces this region with the files in build.json's EmbedAssets as base64,
-# so the exe needs no other files. Running from source, they are read from ..\assets\.
-$script:EmbeddedAssets = @{}
-#endregion BUNDLE-ASSETS
-
 # ---------------------------------------------------------------------------
-#  Script or exe? Where is everything?
+#  Where is everything?
 # ---------------------------------------------------------------------------
-# PS2EXE exes have no $PSCommandPath, so the exe finds its folder from its own process.
-$script:ExePath = [Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
-$script:IsExe   = (-not $PSCommandPath) -or
-                  ([IO.Path]::GetFileNameWithoutExtension($script:ExePath) -notin 'powershell', 'pwsh', 'powershell_ise')
+if (-not $PSCommandPath) {
+    throw 'Run Homelab.ps1 as a file (the Homelab shortcut, Homelab.cmd or powershell -File), not pasted or dot-sourced.'
+}
 
 # WPF needs an STA thread. Started any other way, restart in Windows PowerShell with -STA.
-if (-not $script:IsExe -and [Threading.Thread]::CurrentThread.GetApartmentState() -ne 'STA') {
+if ([Threading.Thread]::CurrentThread.GetApartmentState() -ne 'STA') {
     $ps = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
     Start-Process -FilePath $ps -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-STA', '-WindowStyle', 'Hidden', '-File', "`"$PSCommandPath`"")
     return
@@ -73,21 +72,38 @@ if (-not $script:FirstInstance) {
     exit 0
 }
 
-$script:ProgramDir =if ($script:IsExe) { Split-Path -Parent $script:ExePath } else { Split-Path -Parent $PSCommandPath }
-$script:AssetsDir  = Join-Path (Split-Path -Parent $script:ProgramDir) 'assets'
+# The taskbar groups windows by this ID. Set before any window opens; the Homelab shortcut
+# carries the same ID and the icon, so the taskbar button and a pinned Homelab use them.
+try {
+    if (-not ('Homelab.Shell' -as [type])) {
+        Add-Type -Namespace 'Homelab' -Name 'Shell' -MemberDefinition '[DllImport("shell32.dll", CharSet = CharSet.Unicode)] public static extern int SetCurrentProcessExplicitAppUserModelID(string appId);'
+    }
+    [void][Homelab.Shell]::SetCurrentProcessExplicitAppUserModelID($script:AppId)
+} catch { Write-Verbose "No taskbar ID: $($_.Exception.Message)" }
+
+# From the repo the script is in Source\src\ and the assets in Source\assets\;
+# in a release folder (Homelab v<version>\) they sit together: Homelab.ps1 and assets\.
+$script:ProgramDir = Split-Path -Parent $PSCommandPath
+$script:AssetsDir  = Join-Path $script:ProgramDir 'assets'
+if (-not (Test-Path -LiteralPath $script:AssetsDir)) { $script:AssetsDir = Join-Path (Split-Path -Parent $script:ProgramDir) 'assets' }
+
+function Get-ProjectDir {
+    <# <project>, the folder holding Source\ and Builds\: up from Source\src\ (the repo) or
+       from Builds\Homelab v<version>\ (a release). A release unzipped anywhere else is its own. #>
+    $dir = $script:ProgramDir
+    if ((Split-Path -Leaf (Split-Path -Parent $dir)) -eq 'Builds') { $dir = Split-Path -Parent $dir }
+    foreach ($leaf in 'src', 'Source', 'Builds') {
+        if ((Split-Path -Leaf $dir) -eq $leaf) { $dir = Split-Path -Parent $dir }
+    }
+    return $dir
+}
 
 function Get-DataDir {
     <# Public tools: %APPDATA%\<App Name>. Private tools: <project>\Data, beside Source\ and
        Builds\, so nothing is written to the unencrypted drive. Never inside Source\ (keeps
        personal data out of git) or Builds\ (rebuilding must not touch it). #>
     if (-not $script:IsPrivate) { return (Join-Path $env:APPDATA $script:AppName) }
-    $up = Split-Path -Parent $script:ProgramDir
-    if ($script:IsExe) {
-        if ((Split-Path -Leaf $script:ProgramDir) -eq 'Builds') { return (Join-Path $up 'Data') }
-        return (Join-Path $script:ProgramDir 'Data')
-    }
-    if ((Split-Path -Leaf $up) -eq 'Source') { return (Join-Path (Split-Path -Parent $up) 'Data') }
-    return (Join-Path $up 'Data')
+    return (Join-Path (Get-ProjectDir) 'Data')
 }
 $script:DataDir      = Get-DataDir
 $script:SettingsPath = Join-Path $script:DataDir 'settings.json'
@@ -106,9 +122,8 @@ function Write-AppLog {
 }
 
 function Get-AssetBytes {
-    <# An asset by file name: from the exe when it was embedded, else from Source\assets\. #>
+    <# An asset by file name, from the assets folder ($script:AssetsDir). #>
     param([string]$Name)
-    if ($script:EmbeddedAssets.ContainsKey($Name)) { return [Convert]::FromBase64String($script:EmbeddedAssets[$Name]) }
     $path = Join-Path $script:AssetsDir $Name
     if (Test-Path -LiteralPath $path) { return [IO.File]::ReadAllBytes($path) }
     return $null
@@ -310,13 +325,10 @@ foreach ($pair in @(@('IconsFolder', ''), @('HomepageIconFolder', ''), @('UseHom
 }
 
 function Get-DefaultIconsFolder {
-    <# <project>\Icons: beside Builds\ (the exe) and Source\ (the script, in Source\src\), never inside Source\,
-       so the icons (other projects' logos) never go to GitHub. #>
-    $dir = $script:ProgramDir
-    foreach ($leaf in 'src', 'Source', 'Builds') {
-        if ((Split-Path -Leaf $dir) -eq $leaf) { $dir = Split-Path -Parent $dir }
-    }
-    return (Join-Path $dir 'Icons')
+    <# <project>\Icons: beside Builds\ and Source\, never inside Source\, so the icons (other
+       projects' logos) never go to GitHub, and not inside a release folder, so every version
+       shares them. #>
+    return (Join-Path (Get-ProjectDir) 'Icons')
 }
 
 $script:IconDir    = Join-Path (Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) $script:AppName) 'Icons'
@@ -2352,7 +2364,8 @@ $script:HelpText = @(
     @('b', 'General: refresh time, Portainer address, Private groups, notifications, the update check, the Icons folder, the Homepage fallback and its folder, and setting, changing or removing the Private password (changing or removing needs the current one).'),
     @('p', 'Save writes settings.json and reads the containers again if anything that affects them changed. The window stays open and shows Saved until you change something. Close shuts it; changes since the last Save are dropped (a password change is saved straight away).'),
     @('h', 'Where things live'),
-    @('p', "Settings and log: $script:DataDir (settings.json, its last good copy settings.json.bak, and Homelab.log). If settings.json can't be read, it's kept as settings.bad-<date>.json, Homelab starts with default settings and says so, and nothing is saved over it on close. Icon cache: $script:IconDir. The window's size and position are remembered. Only one Homelab runs at a time: starting it again brings the open one to the front.")
+    @('p', "Settings and log: $script:DataDir (settings.json, its last good copy settings.json.bak, and Homelab.log). If settings.json can't be read, it's kept as settings.bad-<date>.json, Homelab starts with default settings and says so, and nothing is saved over it on close. Icon cache: $script:IconDir. The window's size and position are remembered. Only one Homelab runs at a time: starting it again brings the open one to the front."),
+    @('p', "Homelab itself: $PSCommandPath, run by Windows PowerShell (there's no exe). In a release folder, Homelab.cmd makes the Homelab shortcut next to it and in the Start menu, and the shortcut starts Homelab without a console window. Pin Homelab from the Start menu or its taskbar button.")
 )
 
 function New-HelpPage {
@@ -3909,7 +3922,7 @@ try {
     $timer.Start()
 
     $window.Add_ContentRendered({ Start-Load })
-    Write-AppLog "Started v$script:AppVersion ($(if ($script:IsExe) { 'exe' } else { 'script' }))"
+    Write-AppLog "Started v$script:AppVersion from $PSCommandPath"
     $script:Started = $true
     [void]$window.ShowDialog()
     $timer.Stop()

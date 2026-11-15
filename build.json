@@ -4,14 +4,18 @@
   "Icon": "assets\\Homelab.ico",
   "Side": "Home",
   "Description": "PowerShell/WPF tool for opening every Docker container in a compose file from one window of tiles",
-  "EmbedAssets": ["assets\\Homelab.ico", "assets\\Homelab.png"],
-  "IncludeFiles": [],
-  "Ps2exe": {
-    "STA": true,
-    "NoConsole": true,
-    "NoOutput": true,
-    "NoError": true,
-    "NoConfigFile": true,
-    "RequireAdmin": false
+  "RequireAdmin": false,
+  "Release": {
+    "Files": {
+      "Homelab.ps1": "src\\Homelab.ps1",
+      "New-HomelabShortcut.ps1": "src\\New-HomelabShortcut.ps1",
+      "Homelab.cmd": "release\\Homelab.cmd",
+      "assets\\Homelab.ico": "assets\\Homelab.ico",
+      "assets\\Homelab.png": "assets\\Homelab.png",
+      "README.md": "README.md",
+      "CHANGELOG.md": "CHANGELOG.md",
+      "LICENSE": "LICENSE"
+    },
+    "Shortcut": "New-HomelabShortcut.ps1"
   }
 }

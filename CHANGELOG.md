@@ -2,9 +2,22 @@
 
 All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), with versions numbered
-`<major>.<minor>` and a two-digit minor (v1.00, v1.01 ... v1.10) to match the exe file names.
+`<major>.<minor>` and a two-digit minor (v1.00, v1.01 ... v1.10) to match the release names.
 
 ## [Unreleased]
+
+## [1.03] - 2026-11-15
+
+### Changed
+- **No more exe.** Antivirus (ESET) kept flagging the PS2EXE-built exe as a trojan (false positives), so Homelab now ships as its script. The release is a zip, `Homelab-v1.03.zip`, holding a `Homelab v1.03` folder: `Homelab.ps1`, `assets\`, `Homelab.cmd` and `New-HomelabShortcut.ps1`.
+- **Homelab.cmd** makes the Homelab shortcut next to it and in the Start menu, then starts Homelab. The shortcut starts it without a console window (`conhost --headless` on Windows 11; hidden PowerShell on older Windows) with Homelab's icon.
+- Homelab sets its own taskbar ID (`jason4bury.Homelab`), shared with the shortcut, so the taskbar shows Homelab's icon, not PowerShell's, and pinning Homelab works.
+- `Build.cmd` replaces `Build-Exe.cmd`: it checks the scripts, runs PSScriptAnalyzer, makes `Builds\Homelab v<version>\` and the zip, refreshes `Builds\Homelab.lnk` (for the Home Launcher) and scans the result with ESET's command-line scanner if it's installed.
+- The Home Launcher starts Homelab through `Builds\Homelab.lnk` (`Target` in `launcher.json`).
+- Help > Where things live says where Homelab.ps1 is and how the shortcut is made.
+
+### Fixed
+- The default Icons folder is still the one beside `Builds\` and `Source\` when Homelab runs from a release folder in `Builds\`, so every version shares it.
 
 ## [1.02] - 2026-11-15
 

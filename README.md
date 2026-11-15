@@ -6,7 +6,7 @@
 
 Every container in your compose file as a tile, grouped by label, one click from its web page.
 
-![Version](https://img.shields.io/badge/version-v1.02-blue) ![Platform](https://img.shields.io/badge/platform-Windows-0078D6) ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-5391FE) ![Licence](https://img.shields.io/badge/licence-MIT-green) ![Last commit](https://img.shields.io/github/last-commit/jason4bury/Homelab)
+![Version](https://img.shields.io/badge/version-v1.03-blue) ![Platform](https://img.shields.io/badge/platform-Windows-0078D6) ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-5391FE) ![Licence](https://img.shields.io/badge/licence-MIT-green) ![Last commit](https://img.shields.io/github/last-commit/jason4bury/Homelab)
 
 ## ✨ Features
 
@@ -52,25 +52,30 @@ Homelab is a PowerShell/WPF tool that shows every container in your Docker Compo
 
 ## 📦 Installation
 
-**Exe:** download `Homelab v1.02.exe` from the [latest release](../../releases/latest) and run it. Nothing else to install. Put it in `Home\Homelab\Builds\` and the Home Launcher lists it under Windows.
+1. Download `Homelab-v1.03.zip` from the [latest release](../../releases/latest).
+2. Right-click the zip, choose **Properties**, tick **Unblock** and click OK, *before* extracting it. (Or, after extracting, run `Get-ChildItem -Recurse 'Homelab v1.03' | Unblock-File` in PowerShell.) Files from the internet carry Windows' Mark of the Web, which makes Windows warn about or block scripts.
+3. Extract it anywhere. You get a `Homelab v1.03` folder.
+4. Double-click **Homelab.cmd** in that folder. It makes a **Homelab** shortcut in the folder and in the Start menu, then starts Homelab.
 
-**Script:** clone the repo, or download it as a zip. If you download a zip, right-click it, choose **Properties** and tick **Unblock** *before* unzipping, so Windows doesn't block the scripts. Then double-click **Start Homelab.cmd**.
+From then on, start Homelab from the shortcut or the Start menu, and pin it to the taskbar if you like: it starts without a console window and shows Homelab's own icon. For a new version, extract it and run its Homelab.cmd once; the Start menu shortcut then points at the new folder. Settings are kept in `%APPDATA%\Homelab`, so they carry over.
 
-### Build the exe
+For the Home Launcher, put the release in `Home\Homelab\Builds\` (Build.cmd does this) and it starts Homelab through `Builds\Homelab.lnk`, under Windows.
 
-Double-click **Build-Exe.cmd** in the repo folder. It reads `build.json`, checks that `$script:AppVersion` in the script matches the newest `CHANGELOG.md` entry, runs PSScriptAnalyzer if it's installed, and compiles the exe with [PS2EXE](https://github.com/MScholtes/PS2EXE) (installed for your user account the first time). The exe is saved to the project's `Builds\` folder, outside the repo, as `Homelab v<version>.exe`. Older builds stay alongside.
+**From the repo:** clone it, then double-click **Start Homelab.cmd** (add `debug` to keep a console open and see any errors), or run `src\New-HomelabShortcut.ps1` to make a shortcut for the repo copy.
 
-Once the standard build script is in place, it replaces `Build-Exe.cmd`:
+### Why no exe?
 
-```powershell
-E:\Created\_shared\Build-Tool.ps1 -Project "E:\Created\Home\Homelab"
-```
+Up to v1.02 Homelab shipped as an exe made with [PS2EXE](https://github.com/MScholtes/PS2EXE). Antivirus programs (ESET among them) kept flagging those exes as trojans by mistake, because PS2EXE wraps a script the way some malware does. Homelab is a script anyway, so it now ships as the script itself: nothing is compiled or packed, and you can read exactly what runs.
 
-Some antivirus programs flag PS2EXE executables by mistake. If the exe disappears straight after building, restore it from quarantine and add an exclusion for the `Builds` folder.
+The shortcut runs `conhost.exe --headless powershell.exe -NoProfile -ExecutionPolicy Bypass -STA -File "...\Homelab.ps1"`. `--headless` stops Windows 11 opening a console window; on older Windows the shortcut runs PowerShell with `-WindowStyle Hidden` instead, so a console may flash for a moment. The execution-policy bypass applies to Homelab's own run only; no Windows settings are changed. The shortcut and the script share a taskbar ID (`jason4bury.Homelab`), so the taskbar groups Homelab under its own icon rather than PowerShell's. A shortcut can only hold a full path, which is why Homelab.cmd makes it on your PC instead of it coming in the zip.
+
+### Build a release
+
+Double-click **Build.cmd** in the repo folder. It reads `build.json`, checks every script in `src\` parses and that `$script:AppVersion` matches the newest `CHANGELOG.md` entry, and runs PSScriptAnalyzer if it's installed. Then it makes `..\Builds\Homelab v<version>\` and `..\Builds\Homelab-v<version>.zip` (outside the repo), refreshes `..\Builds\Homelab.lnk` for the Home Launcher, and scans the lot with ESET's command-line scanner (`ecls.exe`) if it's installed. Everything it shows is also in `Build.log`. Older release folders stay alongside.
 
 ## 🚀 Usage
 
-1. Start Homelab (the exe, or **Start Homelab.cmd**).
+1. Start Homelab (the Homelab shortcut, the Start menu, or **Homelab.cmd**).
 2. Pick a tab, or stay on **All**.
 3. Click **Open** on a tile, or double-click the tile. If it isn't running, click **Start**.
 4. Right-click a tile for its other ways in, and to stop or restart it.
@@ -148,7 +153,7 @@ Homelab never changes the machine's compose file. Start, Stop and Restart run `d
 
 ### Icons
 
-Put your own icons in Homelab's **Icons** folder. By default that's the `Icons` folder beside `Builds\` and `Source\` (for example `E:\Created\Home\Homelab\Icons`); Homelab makes it if it isn't there, and **Settings > General > Icons folder** can point somewhere else. The same folder is used for every machine, so the NAS needs no icon folder of its own.
+Put your own icons in Homelab's **Icons** folder. By default that's the `Icons` folder beside `Builds\` and `Source\` (for example `E:\Created\Home\Homelab\Icons`, shared by every release folder in `Builds\`). A release extracted anywhere else uses an `Icons` folder inside its own folder, so point the setting at a fixed folder if you keep more than one version. Homelab makes it if it isn't there, and **Settings > General > Icons folder** can point somewhere else. The same folder is used for every machine, so the NAS needs no icon folder of its own.
 
 Name each file after the service or container, for example `jellyfin.png` or `calibre-web-automated.png`. Case, spaces, `-` and `_` don't matter (so `Calibre Web Automated.png` matches too), and the image name works as well. PNG, JPG, GIF, BMP and ICO all work.
 

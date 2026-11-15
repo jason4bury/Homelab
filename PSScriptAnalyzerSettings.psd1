@@ -1,6 +1,6 @@
 ﻿# PSScriptAnalyzer settings for Homelab.ps1.
-# Build-Exe.cmd runs it. To run it by hand:
-#   Invoke-ScriptAnalyzer -Path .\src\Homelab.ps1 -Settings .\PSScriptAnalyzerSettings.psd1
+# Build.cmd runs it (on everything in src\). To run it by hand:
+#   Invoke-ScriptAnalyzer -Path .\src -Recurse -Settings .\PSScriptAnalyzerSettings.psd1
 @{
     Severity     = @('Error', 'Warning')
     ExcludeRules = @(

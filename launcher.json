@@ -1,3 +1,4 @@
 {
-  "Category": "Windows"
+  "Category": "Windows",
+  "Target": "Builds\\Homelab.lnk"
 }

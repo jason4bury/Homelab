@@ -1,5 +1,9 @@
-# Builds live in ..\Builds\, outside the repo. Safety net in case one lands here.
+# Builds live in ..\Builds\, outside the repo. Safety net in case one lands here:
+# release folders, zips, and the shortcuts New-HomelabShortcut.ps1 makes (full paths, this PC only).
 Builds/
+Homelab v*/
+*.zip
+*.lnk
 *.exe
 *.exe.old
 
@@ -18,7 +22,7 @@ secrets*.json
 *.key
 *.pfx
 
-# Logs, temp files and backups (Build-Exe.log, editor backups)
+# Logs, temp files and backups (Build.log, editor backups)
 *.log
 *.tmp
 *.bak
