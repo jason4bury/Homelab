@@ -28,7 +28,7 @@ $ErrorActionPreference = 'Stop'
 # The version lives here and in CHANGELOG.md; Build.cmd stops if they disagree.
 # Two-digit minor: 1.00, 1.01 ... 1.10. The release folder is "Homelab v<version>".
 $script:AppName     = 'Homelab'
-$script:AppVersion  = '1.03'
+$script:AppVersion  = '1.04'
 # The taskbar identity, shared with the Homelab shortcut, so the taskbar shows Homelab's icon
 # (not PowerShell's) and a pinned Homelab starts Homelab.
 $script:AppId       = 'jason4bury.Homelab'

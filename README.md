@@ -6,7 +6,7 @@
 
 Every container in your compose file as a tile, grouped by label, one click from its web page.
 
-![Version](https://img.shields.io/badge/version-v1.03-blue) ![Platform](https://img.shields.io/badge/platform-Windows-0078D6) ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-5391FE) ![Licence](https://img.shields.io/badge/licence-MIT-green) ![Last commit](https://img.shields.io/github/last-commit/jason4bury/Homelab)
+![Version](https://img.shields.io/badge/version-v1.04-blue) ![Platform](https://img.shields.io/badge/platform-Windows-0078D6) ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-5391FE) ![Licence](https://img.shields.io/badge/licence-MIT-green) ![Last commit](https://img.shields.io/github/last-commit/jason4bury/Homelab)
 
 ## ✨ Features
 
@@ -52,9 +52,9 @@ Homelab is a PowerShell/WPF tool that shows every container in your Docker Compo
 
 ## 📦 Installation
 
-1. Download `Homelab-v1.03.zip` from the [latest release](../../releases/latest).
-2. Right-click the zip, choose **Properties**, tick **Unblock** and click OK, *before* extracting it. (Or, after extracting, run `Get-ChildItem -Recurse 'Homelab v1.03' | Unblock-File` in PowerShell.) Files from the internet carry Windows' Mark of the Web, which makes Windows warn about or block scripts.
-3. Extract it anywhere. You get a `Homelab v1.03` folder.
+1. Download `Homelab-v1.04.zip` from the [latest release](../../releases/latest).
+2. Right-click the zip, choose **Properties**, tick **Unblock** and click OK, *before* extracting it. (Or, after extracting, run `Get-ChildItem -Recurse 'Homelab v1.04' | Unblock-File` in PowerShell.) Files from the internet carry Windows' Mark of the Web, which makes Windows warn about or block scripts.
+3. Extract it anywhere. You get a `Homelab v1.04` folder.
 4. Double-click **Homelab.cmd** in that folder. It makes a **Homelab** shortcut in the folder and in the Start menu, then starts Homelab.
 
 From then on, start Homelab from the shortcut or the Start menu, and pin it to the taskbar if you like: it starts without a console window and shows Homelab's own icon. For a new version, extract it and run its Homelab.cmd once; the Start menu shortcut then points at the new folder. Settings are kept in `%APPDATA%\Homelab`, so they carry over.

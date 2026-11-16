@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.04] - 2026-11-16
+
+### Fixed
+- **Homelab.cmd works again.** In v1.03 it stopped with "Join-Path: Cannot bind argument to parameter 'Path' because it is an empty string", so the release zip couldn't make its shortcut or start Homelab. `New-HomelabShortcut.ps1` worked out Homelab.ps1's path in a `param()` default, where Windows PowerShell 5.1 leaves `$PSScriptRoot` empty under `powershell.exe -File`. It now works the path out in the script body. (`Builds\Homelab.lnk` was never affected, because Build.cmd passed the path itself.)
+
+### Changed
+- `Build.cmd` runs the shortcut maker the same way Homelab.cmd does, with `powershell.exe -File` and no script path, so a build fails if the release's Homelab.cmd would.
+
 ## [1.03] - 2026-11-15
 
 ### Changed
