@@ -28,7 +28,7 @@ $ErrorActionPreference = 'Stop'
 # The version lives here and in CHANGELOG.md; Build.cmd stops if they disagree.
 # Two-digit minor: 1.00, 1.01 ... 1.10. The release folder is "Homelab v<version>".
 $script:AppName     = 'Homelab'
-$script:AppVersion  = '1.04'
+$script:AppVersion  = '1.05'
 # The taskbar identity, shared with the Homelab shortcut, so the taskbar shows Homelab's icon
 # (not PowerShell's) and a pinned Homelab starts Homelab.
 $script:AppId       = 'jason4bury.Homelab'
@@ -223,6 +223,7 @@ $script:AboutXaml = @'
                     </StackPanel>
                 </StackPanel>
                 <TextBlock x:Name="AboutDescription" TextWrapping="Wrap" Margin="0,16,0,0" LineHeight="20"/>
+                <TextBlock x:Name="AboutNew" TextWrapping="Wrap" Margin="0,10,0,0" LineHeight="20"/>
                 <Border Height="1" Background="{DynamicResource Line}" Margin="0,14,0,12"/>
                 <TextBlock x:Name="AboutData" TextWrapping="Wrap" Foreground="{DynamicResource Muted}"/>
                 <TextBlock Margin="0,8,0,0"><Hyperlink x:Name="AboutRepo" Foreground="{DynamicResource Link}"><Run x:Name="AboutRepoText"/></Hyperlink></TextBlock>
@@ -247,6 +248,7 @@ function Show-About {
     $w.FindName('AboutName').Text         = $script:AppName
     $w.FindName('AboutVersion').Text      = "Version $script:AppVersion"
     $w.FindName('AboutDescription').Text  = $script:Description
+    $w.FindName('AboutNew').Text          = "New in 1.05: Start all, Stop all and Restart unhealthy ask in Homelab's own light or dark box instead of Windows' grey one, with Start them, Stop them or Restart them and Cancel."
     $w.FindName('AboutData').Text         = "Settings and data: $script:DataDir"
     $w.FindName('AboutRepoText').Text     = $script:RepoUrl
     $w.FindName('AboutRepo').NavigateUri  = [Uri]$script:RepoUrl
@@ -3491,11 +3493,85 @@ function Get-TabTargets([string]$Verb) {
 
 function Get-UnhealthyItems { return @(Get-VisibleItems | Where-Object { $_.State -eq 'running' -and $_.StateText -like 'Unhealthy*' -and (Test-CanStop $_) }) }
 
-function Confirm-GroupAction([string]$Question, $Items) {
+$script:MessageXaml = @'
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Width="480" SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource WinBg}" Foreground="{DynamicResource Text}"
+        FontFamily="Segoe UI" FontSize="13">
+    <StackPanel Margin="0" Background="{DynamicResource WinBg}">
+        <Border Margin="14,14,14,0" Background="{DynamicResource Panel}" BorderBrush="{DynamicResource Line}" BorderThickness="1" CornerRadius="8" Padding="20,18">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <Border x:Name="MsgBadge" Width="28" Height="28" CornerRadius="14" VerticalAlignment="Center">
+                        <TextBlock x:Name="MsgGlyph" FontSize="15" FontWeight="Bold" Foreground="#FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock x:Name="MsgHeading" FontSize="18" FontWeight="SemiBold" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+                <ScrollViewer MaxHeight="420" Margin="0,14,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                    <TextBox x:Name="MsgText" IsReadOnly="True" IsTabStop="False" TextWrapping="Wrap" BorderThickness="0" Padding="0"
+                             Background="Transparent" Foreground="{DynamicResource Text}">
+                        <TextBox.Template><ControlTemplate TargetType="TextBox"><ScrollViewer x:Name="PART_ContentHost" Focusable="False"/></ControlTemplate></TextBox.Template>
+                    </TextBox>
+                </ScrollViewer>
+            </StackPanel>
+        </Border>
+        <StackPanel x:Name="MsgButtons" Orientation="Horizontal" HorizontalAlignment="Right" Margin="14,12,14,14"/>
+    </StackPanel>
+</Window>
+'@
+
+function Show-HomelabMessage {
+    <# A message or question in Homelab's own look (light or dark, like About, Help and Settings)
+       instead of Windows' plain grey MessageBox: a coloured badge and heading on a panel, the
+       message (selectable, scrolls when long) and Homelab's buttons. $Kind is Information,
+       Warning, Error or Question. The first of $Buttons is the main (accent) button and Enter
+       presses it; the last is pressed by Esc or the X and has the focus, so a stray Space
+       doesn't confirm. Returns the text of the button pressed. #>
+    param([string]$Text, [string]$Kind = 'Information', [string[]]$Buttons = @('OK'), [string]$Heading = '', [Windows.Window]$Owner = $script:Window)
+    $kinds = @{
+        Information = @{ Glyph = 'i';               Brush = 'Accent';  Heading = 'Good to know' }
+        Warning     = @{ Glyph = '!';               Brush = 'St_warn'; Heading = 'Heads up' }
+        Error       = @{ Glyph = [string][char]0xD7; Brush = 'St_bad';  Heading = 'Something went wrong' }
+        Question    = @{ Glyph = '?';               Brush = 'Accent';  Heading = 'Just checking' }
+    }
+    $k = $kinds[$Kind]; if (-not $k) { $k = $kinds['Information'] }
+    if (-not $Heading) { $Heading = $k.Heading }
+    if (-not $Buttons -or $Buttons.Count -eq 0) { $Buttons = @('OK') }
+    $w = New-XamlWindow $script:MessageXaml
+    if ($Text.Length -gt 380) { $w.Width = 580 }
+    # The main window's colours and styles, so the box follows the light or dark theme.
+    if ($script:Window) { $w.Resources.MergedDictionaries.Add($script:Window.Resources) }
+    if ($Owner -and $Owner.IsVisible) { $w.Owner = $Owner; $w.Icon = $Owner.Icon }
+    else { $w.WindowStartupLocation = 'CenterScreen'; $w.Topmost = $true; $w.ShowInTaskbar = $true }
+    $w.Add_SourceInitialized({ Set-DarkTitleBar $script:IsDark $this })
+    $w.Title = $script:AppName
+    $w.FindName('MsgBadge').SetResourceReference([Windows.Controls.Border]::BackgroundProperty, $k.Brush)
+    $w.FindName('MsgGlyph').Text = $k.Glyph
+    $w.FindName('MsgHeading').Text = $Heading
+    $w.FindName('MsgText').Text = $Text
+    $row = $w.FindName('MsgButtons')
+    for ($i = 0; $i -lt $Buttons.Count; $i++) {
+        $b = New-Object Windows.Controls.Button
+        $b.Content = $Buttons[$i]; $b.Tag = $Buttons[$i]
+        $b.MinWidth = 84; $b.Padding = New-Object Windows.Thickness 16, 5, 16, 5
+        if ($i -eq 0) { $b.SetResourceReference([Windows.FrameworkElement]::StyleProperty, 'AccentButton'); $b.IsDefault = $true }
+        if ($i -lt $Buttons.Count - 1) { $b.Margin = New-Object Windows.Thickness 0, 0, 8, 0 }
+        if ($i -eq $Buttons.Count - 1) { $b.IsCancel = $true }
+        $b.Add_Click({ $win = [Windows.Window]::GetWindow($this); $win.Tag = [string]$this.Tag; $win.Close() })
+        [void]$row.Children.Add($b)
+    }
+    $w.Add_ContentRendered({ [void]$this.Activate(); $r = $this.FindName('MsgButtons'); [void]$r.Children[$r.Children.Count - 1].Focus() })
+    [void]$w.ShowDialog()
+    if ($w.Tag) { return [string]$w.Tag }
+    return $Buttons[-1]
+}
+
+function Confirm-GroupAction([string]$Question, $Items, [string]$YesText = 'Yes') {
     $names = @($Items | Sort-Object Title | Select-Object -First 20 | ForEach-Object { "  $([char]0x2022) $($_.Title)" })
     if ($Items.Count -gt 20) { $names += "  ...and $($Items.Count - 20) more" }
     $text = "$Question`n`n$($names -join "`n")`n`nThey run one at a time on $(Get-MachineName)."
-    return ([Windows.MessageBox]::Show($script:Window, $text, $script:AppName, 'YesNo', 'Question', 'No') -eq 'Yes')
+    return ((Show-HomelabMessage $text 'Question' @($YesText, 'Cancel')) -eq $YesText)
 }
 
 function Invoke-GroupAction([string]$Verb) {
@@ -3505,7 +3581,9 @@ function Invoke-GroupAction([string]$Verb) {
     $n = $items.Count; $s = if ($n -eq 1) { '' } else { 's' }
     $onTab = "on $tabName" + $(if ($script:UpdatesOnly) { ' with an update' } else { '' }) + $(if ($script:Ui.TxtSearch.Text.Trim()) { ' matching the search' } else { '' })
     $q = if ($Verb -eq 'Restart') { "Restart $n unhealthy container$($s)?" } else { "$Verb $n container$s $($onTab)?" }
-    if (-not (Confirm-GroupAction $q $items)) { return }
+    $yes = switch ($Verb) { 'Restart' { 'Restart them' } 'Stop' { 'Stop them' } default { 'Start them' } }
+    if ($n -eq 1) { $yes = $yes -replace 'them$', 'it' }
+    if (-not (Confirm-GroupAction $q $items $yes)) { return }
     Write-AppLog "$Verb all: $n on $(Get-MachineName) ($tabName)"
     foreach ($i in ($items | Sort-Object Title)) { $script:ActionQueue.Enqueue(@{ Item = $i; Verb = $Verb; Gen = $script:Generation }) }
     $script:ActionTotal = $script:ActionQueue.Count

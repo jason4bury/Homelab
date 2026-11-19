@@ -6,6 +6,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.05] - 2026-11-19
+
+### Changed
+- **The last Windows message box is gone.** Start all, Stop all and Restart unhealthy now ask in Homelab's own box instead of Windows' plain grey one. It follows the light or dark theme like About, Help and Settings, with a coloured badge and heading on a panel, the list of containers (selectable, scrolls when long) and Homelab's buttons. The new `Show-HomelabMessage` draws it.
+- The buttons say what happens: **Start them**, **Stop them** or **Restart them** (or **...it** for one container), and **Cancel**. Cancel has the focus, as No did; Enter presses the main button and Esc or the X cancels.
+- About notes what's new in 1.05.
+- Unchanged: the box shown if Homelab can't start, and the Windows notifications.
+
 ## [1.04] - 2026-11-16
 
 ### Fixed
