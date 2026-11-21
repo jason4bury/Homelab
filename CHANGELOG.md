@@ -6,6 +6,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.06] - 2026-11-21
+
+### Changed
+- **Works for anyone out of the box.** Homelab no longer starts with a built-in compose file path.
+  The first time, a welcome banner asks you to pick your `docker-compose.yml` (click **Pick your
+  compose file...** at the bottom, or **Settings > This PC**); after that it is remembered as before.
+  Existing settings are kept, so nothing changes on a PC that already has a compose file set.
+- Examples in the Settings tooltips and the README use made-up addresses and names (`192.168.1.10`,
+  `nas`, project `home`), and the README screenshot shows demo containers.
+
 ## [1.05] - 2026-11-19
 
 ### Changed

@@ -28,7 +28,7 @@ $ErrorActionPreference = 'Stop'
 # The version lives here and in CHANGELOG.md; Build.cmd stops if they disagree.
 # Two-digit minor: 1.00, 1.01 ... 1.10. The release folder is "Homelab v<version>".
 $script:AppName     = 'Homelab'
-$script:AppVersion  = '1.05'
+$script:AppVersion  = '1.06'
 # The taskbar identity, shared with the Homelab shortcut, so the taskbar shows Homelab's icon
 # (not PowerShell's) and a pinned Homelab starts Homelab.
 $script:AppId       = 'jason4bury.Homelab'
@@ -262,7 +262,7 @@ function Show-About {
 # ---------------------------------------------------------------------------
 #  Settings
 # ---------------------------------------------------------------------------
-$script:DefaultCompose = 'E:\Docker\docker-compose.yml'
+$script:DefaultCompose = ''   # none to begin with: the first start asks for the compose file
 $script:Settings = Get-AppSetting
 foreach ($pair in @(
         @('ComposePath', $script:DefaultCompose),
@@ -2338,7 +2338,7 @@ $script:HelpText = @(
             @('Folder', 'The compose project folder there.'),
             @('Compose file', 'In that folder, or a full /path.'),
             @('Project', 'The compose project name the stack runs under (blank: the folder name; Synology uses the project''s name).'),
-            @('Web address', 'The host web pages use (blank: the Address). Use a host name such as media, not an IP address: some apps (Radarr, Prowlarr) only answer to names on their allowed-hosts list, so Settings won''t save an IP here, or a blank one when the Address is an IP.'),
+            @('Web address', 'The host web pages use (blank: the Address). Use a host name such as nas, not an IP address: some apps (Radarr, Prowlarr) only answer to names on their allowed-hosts list, so Settings won''t save an IP here, or a blank one when the Address is an IP.'),
             @('Path map', 'Its folders as Windows shares, for Config folder, e.g. /volume1/docker = \\nas\docker.'))),
     @('h', 'Icons'),
     @('p', 'Put your own icons in the Icons folder (Settings > General; by default the Icons folder beside Homelab''s Builds and Source folders), named after the service or container, for example jellyfin.png. Case, spaces, - and _ don''t matter. The same folder is used for every machine. Icons aren''t shipped with Homelab, because the logos belong to their projects.'),
@@ -2566,12 +2566,13 @@ function Get-ComposeStamp {
 function Start-Load {
     if ($script:Loading) { return }
     $path = Get-ComposeLabel
-    $script:Ui.TxtCompose.Text = $path
+    $script:Ui.TxtCompose.Text = if ($path) { $path } else { 'Pick your compose file...' }
     $script:WebHost = Get-WebHost
     $script:MyIconsCache = $null
     if (-not (Get-Machine) -and -not (Test-FilePath $path)) {
-        $what = if ($path) { "The compose file $path wasn't found." } else { 'No compose file is set.' }
-        Show-Banner "$what Click its name at the bottom (or use Settings > This PC) to pick one." 'load'
+        $msg = if ($path) { "The compose file $path wasn't found. Click its name at the bottom (or use Settings > This PC) to pick one." }
+               else { 'Welcome to Homelab. Pick your docker-compose.yml: click Pick your compose file... at the bottom, or use Settings > This PC.' }
+        Show-Banner $msg 'load'
         return
     }
     $script:Loading = $true
@@ -2983,7 +2984,7 @@ function Split-Login([string]$Login) {
     return @($Login.Substring(0, $at), $Login.Substring($at + 1))
 }
 
-$script:WebIpAdvice = 'Use the machine''s host name here (for example media), not an IP address. Some apps, such as Radarr and Prowlarr, only answer to names on their allowed-hosts list and refuse pages opened by IP.'
+$script:WebIpAdvice = 'Use the machine''s host name here (for example nas), not an IP address. Some apps, such as Radarr and Prowlarr, only answer to names on their allowed-hosts list and refuse pages opened by IP.'
 
 function Test-IpAddress([string]$Text) {
     <# True for an IPv4 or IPv6 address (with or without [ ]), not for a host name. #>
@@ -3256,13 +3257,13 @@ function Show-Settings {
     $script:Set.Form = $form
     $grid = New-FormGrid
     Add-FormRow $grid 'Name' $f.Name 'Shown on the machine button.'
-    Add-FormRow $grid 'Address' $f.Host 'IP address or host name, e.g. 192.168.0.113.'
+    Add-FormRow $grid 'Address' $f.Host 'IP address or host name, e.g. 192.168.1.10.'
     Add-FormRow $grid 'SSH user' $f.User 'Uses your SSH key (no password prompts).'
     Add-FormRow $grid 'SSH port' $f.Port 'Blank for 22.'
     Add-FormRow $grid 'Folder' $f.Folder 'The compose project folder there, e.g. /volume1/homes/you.'
     Add-FormRow $grid 'Compose file' $f.Compose 'In that folder, or a full /path.'
     Add-FormRow $grid 'Project' $f.Project 'The compose project name the stack runs under (blank: the folder name).'
-    Add-FormRow $grid 'Web address' $f.Web 'For the tiles'' web pages: the machine''s host name (e.g. media), not an IP address. Blank: same as Address, which must then be a name.'
+    Add-FormRow $grid 'Web address' $f.Web 'For the tiles'' web pages: the machine''s host name (e.g. nas), not an IP address. Blank: same as Address, which must then be a name.'
     # Live warning under Web address when it (or a blank one falling back to Address) is an IP address.
     $script:Set.WebWarn = New-Object Windows.Controls.TextBlock
     $script:Set.WebWarn.FontSize = 11.5; $script:Set.WebWarn.TextWrapping = 'Wrap'; $script:Set.WebWarn.Margin = '2,3,0,0'; $script:Set.WebWarn.Visibility = 'Collapsed'

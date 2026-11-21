@@ -6,7 +6,7 @@
 
 Every container in your compose file as a tile, grouped by label, one click from its web page.
 
-![Version](https://img.shields.io/badge/version-v1.05-blue) ![Platform](https://img.shields.io/badge/platform-Windows-0078D6) ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-5391FE) ![Licence](https://img.shields.io/badge/licence-MIT-green) ![Last commit](https://img.shields.io/github/last-commit/jason4bury/Homelab)
+![Version](https://img.shields.io/badge/version-v1.06-blue) ![Platform](https://img.shields.io/badge/platform-Windows-0078D6) ![PowerShell](https://img.shields.io/badge/PowerShell-5.1-5391FE) ![Licence](https://img.shields.io/badge/licence-MIT-green) ![Last commit](https://img.shields.io/github/last-commit/jason4bury/Homelab)
 
 ## ✨ Features
 
@@ -48,13 +48,13 @@ Homelab is a PowerShell/WPF tool that shows every container in your Docker Compo
 - Windows 10 or 11.
 - Windows PowerShell 5.1 (built into Windows) with .NET Framework 4.7.2 or later.
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (or another engine `docker.exe` can reach) with Compose v2.
-- A `docker-compose.yml`. Homelab uses `E:\Docker\docker-compose.yml` until you pick another one.
+- A `docker-compose.yml`. Homelab asks for it the first time it starts.
 
 ## 📦 Installation
 
-1. Download `Homelab-v1.05.zip` from the [latest release](../../releases/latest).
-2. Right-click the zip, choose **Properties**, tick **Unblock** and click OK, *before* extracting it. (Or, after extracting, run `Get-ChildItem -Recurse 'Homelab v1.05' | Unblock-File` in PowerShell.) Files from the internet carry Windows' Mark of the Web, which makes Windows warn about or block scripts.
-3. Extract it anywhere. You get a `Homelab v1.05` folder.
+1. Download `Homelab-v1.06.zip` from the [latest release](../../releases/latest).
+2. Right-click the zip, choose **Properties**, tick **Unblock** and click OK, *before* extracting it. (Or, after extracting, run `Get-ChildItem -Recurse 'Homelab v1.06' | Unblock-File` in PowerShell.) Files from the internet carry Windows' Mark of the Web, which makes Windows warn about or block scripts.
+3. Extract it anywhere. You get a `Homelab v1.06` folder.
 4. Double-click **Homelab.cmd** in that folder. It makes a **Homelab** shortcut in the folder and in the Start menu, then starts Homelab.
 
 From then on, start Homelab from the shortcut or the Start menu, and pin it to the taskbar if you like: it starts without a console window and shows Homelab's own icon. For a new version, extract it and run its Homelab.cmd once; the Start menu shortcut then points at the new folder. Settings are kept in `%APPDATA%\Homelab`, so they carry over.
@@ -75,7 +75,7 @@ Double-click **Build.cmd** in the repo folder. It reads `build.json`, checks eve
 
 ## 🚀 Usage
 
-1. Start Homelab (the Homelab shortcut, the Start menu, or **Homelab.cmd**).
+1. Start Homelab (the Homelab shortcut, the Start menu, or **Homelab.cmd**). The first time, click **No compose file is set** (or **Settings > This PC**) and pick your `docker-compose.yml`.
 2. Pick a tab, or stay on **All**.
 3. Click **Open** on a tile, or double-click the tile. If it isn't running, click **Start**.
 4. Right-click a tile for its other ways in, and to stop or restart it.
@@ -127,7 +127,7 @@ The first time it starts, Homelab copies the machine list from Docker Container 
     "Port": "22",
     "Folder": "/volume1/homes/user",
     "ComposeFile": "docker-compose.yml",
-    "Project": "media",
+    "Project": "home",
     "WebHost": "nas",
     "PathMap": { "/volume1/homes/user": "\\\\nas\\home", "/volume1/docker": "\\\\nas\\docker" }
   }
@@ -139,7 +139,7 @@ The first time it starts, Homelab copies the machine list from Docker Container 
 | `Login`, `Port` | How to reach the machine with `ssh`. |
 | `Folder`, `ComposeFile` | Where its compose file and `.env` are. |
 | `Project` | The compose project name its containers were started under, if it isn't the folder's name. |
-| `WebHost` | The host name web pages open at, such as `nas` or `media`. Blank means the address in `Login`. |
+| `WebHost` | The host name web pages open at, such as `nas` or `homeserver`. Blank means the address in `Login`. |
 | `PathMap` | Turns its folders into share paths, so **Config folder** opens them in Explorer. |
 
 > [!IMPORTANT]
@@ -153,7 +153,7 @@ Homelab never changes the machine's compose file. Start, Stop and Restart run `d
 
 ### Icons
 
-Put your own icons in Homelab's **Icons** folder. By default that's the `Icons` folder beside `Builds\` and `Source\` (for example `E:\Created\Home\Homelab\Icons`, shared by every release folder in `Builds\`). A release extracted anywhere else uses an `Icons` folder inside its own folder, so point the setting at a fixed folder if you keep more than one version. Homelab makes it if it isn't there, and **Settings > General > Icons folder** can point somewhere else. The same folder is used for every machine, so the NAS needs no icon folder of its own.
+Put your own icons in Homelab's **Icons** folder. By default that's the `Icons` folder beside `Builds\` and `Source\` (for example `C:\Tools\Homelab\Icons`, shared by every release folder in `Builds\`). A release extracted anywhere else uses an `Icons` folder inside its own folder, so point the setting at a fixed folder if you keep more than one version. Homelab makes it if it isn't there, and **Settings > General > Icons folder** can point somewhere else. The same folder is used for every machine, so the NAS needs no icon folder of its own.
 
 Name each file after the service or container, for example `jellyfin.png` or `calibre-web-automated.png`. Case, spaces, `-` and `_` don't matter (so `Calibre Web Automated.png` matches too), and the image name works as well. PNG, JPG, GIF, BMP and ICO all work.
 
@@ -164,7 +164,7 @@ Homelab looks for each service's icon in this order:
 
 1. The `home.icon` label: a full path to an image, or a name looked up in the places below.
 2. The **Icons** folder.
-3. Homepage's icon folder, if **Fall back to Homepage icons** is ticked (it is by default): `HomepageIconFolder`, or `homepage\icons` in the compose file's folder (so `E:\Docker\homepage\icons`).
+3. Homepage's icon folder, if **Fall back to Homepage icons** is ticked (it is by default): `HomepageIconFolder`, or `homepage\icons` in the compose file's folder (for example `C:\Docker\homepage\icons`).
 4. The download cache: Homelab's (`%LOCALAPPDATA%\Homelab\Icons`), then Docker Container Manager's (`%LOCALAPPDATA%\Docker Container Manager\Icons`).
 5. A download from [Dashboard Icons](https://github.com/homarr-labs/dashboard-icons) (in the background, one at a time) into Homelab's cache. A name it doesn't have isn't asked for again for two weeks.
 6. Coloured initials.
